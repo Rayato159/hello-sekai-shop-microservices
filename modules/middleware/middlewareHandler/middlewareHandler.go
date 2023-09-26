@@ -1,15 +1,22 @@
 package middlewareHandler
 
-import "github.com/Rayato159/hello-sekai-shop-tutorial/modules/middleware/middlewareRepository"
+import (
+	"github.com/Rayato159/hello-sekai-shop-tutorial/config"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/middleware/middlewareUsecase"
+)
 
 type (
 	MiddlewareHandlerService interface{}
 
 	middlewareHandler struct {
-		middlewareRepository middlewareRepository.MiddlewareRepositoryService
+		cfg               *config.Config
+		middlewareUsecase middlewareUsecase.MiddlewareUsecaseService
 	}
 )
 
-func NewMiddlewareHandler(middlewareRepository middlewareRepository.MiddlewareRepositoryService) MiddlewareHandlerService {
-	return &middlewareHandler{middlewareRepository}
+func NewMiddlewareHandler(cfg *config.Config, middlewareUsecase middlewareUsecase.MiddlewareUsecaseService) MiddlewareHandlerService {
+	return &middlewareHandler{
+		cfg:               cfg,
+		middlewareUsecase: middlewareUsecase,
+	}
 }
