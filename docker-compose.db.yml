@@ -1,0 +1,49 @@
+version: '3.8'
+
+name: hello-sekai-shop-db
+
+services:
+  auth-db:
+    image: mongo
+    container_name: auth-db
+    ports:
+      - 27017:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+
+  item-db:
+    image: mongo
+    container_name: item-db
+    ports:
+      - 27018:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+
+  player-db:
+    image: mongo
+    container_name: player-db
+    ports:
+      - 27019:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+
+  inventory-db:
+    image: mongo
+    container_name: inventory-db
+    ports:
+      - 27020:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
+
+  payment-db:
+    image: mongo
+    container_name: payment-db
+    ports:
+      - 27021:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: 123456
