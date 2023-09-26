@@ -8,6 +8,6 @@ type (
 	}
 )
 
-func NewPlayerGrpcHandler(playerUsecase playerUsecase.PlayerUsecaseService) playerGrpcHandlerService {
-	return playerGrpcHandlerService{playerUsecase}
+func NewPlayerGrpcHandler(playerUsecase playerUsecase.PlayerUsecaseService) *playerGrpcHandlerService {
+	return &playerGrpcHandlerService{playerUsecase}
 }
