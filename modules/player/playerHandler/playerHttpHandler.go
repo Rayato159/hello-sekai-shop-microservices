@@ -14,6 +14,6 @@ type (
 	}
 )
 
-func NewPlayerHandler(cfg *config.Config, playerUsecase playerUsecase.PlayerUsecaseService) PlayerHttpHandlerService {
+func NewPlayerHttpHandler(cfg *config.Config, playerUsecase playerUsecase.PlayerUsecaseService) PlayerHttpHandlerService {
 	return &playerHttpHandler{playerUsecase: playerUsecase}
 }
