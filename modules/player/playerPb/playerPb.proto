@@ -1,0 +1,40 @@
+// Version
+syntax = "proto3";
+
+// Package name
+option go_package = "github.com/Rayato159/hello-sekai-shop-tutorial";
+
+// Structures
+message PlayerProfile {
+    string id = 1;
+    string email = 2;
+    string username = 3;
+    int32 roleCode = 4;
+    string created_at = 5;
+    string updated_at = 6;
+}
+
+message CredentialSearchReq {
+    string email = 1;
+    string password = 2;
+}
+
+message FindOnePlayerProfileToRefreshReq {
+    string playerId = 1;
+}
+
+message GetPlayerSavingAccountReq {
+    string playerId = 1;
+}
+
+message GetPlayerSavingAccountRes {
+    string playerId = 1;
+    double balance = 2;
+}
+
+// Methods
+service PlayerGrpcService {
+    rpc CredentialSearch(CredentialSearchReq) returns (PlayerProfile);
+    rpc FindOnePlayerProfileToRefresh (FindOnePlayerProfileToRefreshReq) returns (PlayerProfile);
+    rpc GetPlayerSavingAccount (GetPlayerSavingAccountReq) returns (GetPlayerSavingAccountRes);
+}
