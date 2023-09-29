@@ -1,10 +1,16 @@
 package inventoryHandler
 
-import "github.com/Rayato159/hello-sekai-shop-tutorial/modules/inventory/inventoryUsecase"
+import (
+	"context"
+
+	inventoryPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/inventory/inventoryPb"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/inventory/inventoryUsecase"
+)
 
 type (
 	inventoryGrpcHandler struct {
 		inventoryUsecase inventoryUsecase.InventoryUsecaseService
+		inventoryPb.UnimplementedInventoryGrpcServiceServer
 	}
 )
 
@@ -12,4 +18,8 @@ func NewInventoryGrpcHandler(inventoryUsecase inventoryUsecase.InventoryUsecaseS
 	return &inventoryGrpcHandler{
 		inventoryUsecase: inventoryUsecase,
 	}
+}
+
+func (g *inventoryGrpcHandler) IsAvailableToSell(ctx context.Context, req *inventoryPb.IsAvailableToSellRes) (*inventoryPb.IsAvailableToSellRes, error) {
+	return nil, nil
 }
