@@ -18,7 +18,7 @@ func playerDbConn(pctx context.Context, cfg *config.Config) *mongo.Database {
 }
 
 func PlayerMigrate(pctx context.Context, cfg *config.Config) {
-	db := authDbConn(pctx, cfg)
+	db := playerDbConn(pctx, cfg)
 	defer db.Client().Disconnect(pctx)
 
 	col := db.Collection("player_transactions")

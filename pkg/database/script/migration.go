@@ -27,6 +27,7 @@ func main() {
 	case "auth":
 		migration.AuthMigrate(ctx, &cfg)
 	case "item":
+		migration.ItemMigrate(ctx, &cfg)
 	case "inventory":
 	case "payment":
 	}
