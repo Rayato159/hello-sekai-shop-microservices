@@ -1,0 +1,27 @@
+// Version
+syntax = "proto3";
+
+// Package name
+option go_package = "github.com/Rayato159/hello-sekai-shop-tutorial";
+
+// Structures
+message FindItemsInIdsReq {
+    repeated int32 ids = 1;
+}
+
+message FindItemsInIdsRes {
+    repeated Item items = 1;
+}
+
+message Item {
+    string id = 1;
+    string title = 2;
+    double price = 3;
+    string imageUrl = 4;
+    int32 damage = 5;
+}
+
+// Methods
+service ItemGrpcService {
+    rpc FindItemsInIds(FindItemsInIdsReq) returns (FindItemsInIdsRes);
+}
