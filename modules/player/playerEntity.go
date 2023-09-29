@@ -8,13 +8,13 @@ import (
 
 type (
 	Player struct {
-		Id         primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
-		Email      string             `json:"email" bson:"email"`
-		Password   string             `json:"password" bson:"password"`
-		Username   string             `json:"username" bson:"username"`
-		CreatedAt  time.Time          `json:"created_at" bson:"created_at"`
-		UpdatedAt  time.Time          `json:"updated_at" bson:"updated_at"`
-		PlayerRole []PlayerRole       `bson:"player_roles"`
+		Id          primitive.ObjectID `json:"_id" bson:"_id,omitempty"`
+		Email       string             `json:"email" bson:"email"`
+		Password    string             `json:"password" bson:"password"`
+		Username    string             `json:"username" bson:"username"`
+		CreatedAt   time.Time          `json:"created_at" bson:"created_at"`
+		UpdatedAt   time.Time          `json:"updated_at" bson:"updated_at"`
+		PlayerRoles []PlayerRole       `bson:"player_roles"`
 	}
 
 	PlayerRole struct {
@@ -33,5 +33,11 @@ type (
 	PlayerSavingAccount struct {
 		PlayerId string  `json:"player_id" bson:"player_id"`
 		Balance  float64 `json:"balance" bson:"balance"`
+	}
+
+	PlayerTransaction struct {
+		PlayerId  string    `bson:"player_id"`
+		Amount    float64   `bson:"amount"`
+		CreatedAt time.Time `bson:"created_at"`
 	}
 )
