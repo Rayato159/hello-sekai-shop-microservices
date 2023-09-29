@@ -20,6 +20,6 @@ func NewInventoryGrpcHandler(inventoryUsecase inventoryUsecase.InventoryUsecaseS
 	}
 }
 
-func (g *inventoryGrpcHandler) IsAvailableToSell(ctx context.Context, req *inventoryPb.IsAvailableToSellRes) (*inventoryPb.IsAvailableToSellRes, error) {
+func (g *inventoryGrpcHandler) IsAvailableToSell(ctx context.Context, req *inventoryPb.IsAvailableToSellReq) (*inventoryPb.IsAvailableToSellRes, error) {
 	return nil, nil
 }
