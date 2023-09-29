@@ -11,7 +11,6 @@ import (
 
 func main() {
 	ctx := context.Background()
-	_ = ctx
 
 	// Initialize config
 	cfg := config.LoadConfig(func() string {
@@ -29,6 +28,7 @@ func main() {
 	case "item":
 		migration.ItemMigrate(ctx, &cfg)
 	case "inventory":
+		migration.InventoryMigrate(ctx, &cfg)
 	case "payment":
 	}
 }
