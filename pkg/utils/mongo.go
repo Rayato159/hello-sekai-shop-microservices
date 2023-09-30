@@ -4,7 +4,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-func ConvertToObject(id string) primitive.ObjectID {
+func ConvertToObjectId(id string) primitive.ObjectID {
 	objectId, _ := primitive.ObjectIDFromHex(id)
 	return objectId
 }
