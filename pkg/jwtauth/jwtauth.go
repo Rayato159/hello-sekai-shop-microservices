@@ -1,6 +1,7 @@
 package jwtauth
 
 import (
+	"errors"
 	"math"
 	"time"
 
@@ -127,5 +128,29 @@ func NewApiKey(secret string, expiredAt int64, claims *Claims) AuthFactory {
 				},
 			},
 		},
+	}
+}
+
+func ParseToken(secret string, tokenString string) (*AuthMapClaims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &AuthMapClaims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("error: unexpected signing method")
+		}
+		return []byte(secret), nil
+	})
+	if err != nil {
+		if errors.Is(err, jwt.ErrTokenMalformed) {
+			return nil, errors.New("error: token format is invalid")
+		} else if errors.Is(err, jwt.ErrTokenExpired) {
+			return nil, errors.New("error: token is expired")
+		} else {
+			return nil, errors.New("error: token is invalid")
+		}
+	}
+
+	if claims, ok := token.Claims.(*AuthMapClaims); ok {
+		return claims, nil
+	} else {
+		return nil, errors.New("error: claims type is invalid")
 	}
 }
