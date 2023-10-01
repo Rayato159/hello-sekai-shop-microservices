@@ -27,7 +27,6 @@ func (s *server) playerService() {
 		grpcServer.Serve(lis)
 	}()
 
-	_ = grpcHandler
 	_ = queueHandler
 
 	player := s.app.Group("/player_v1")
