@@ -36,4 +36,8 @@ type (
 		CreatedAt    time.Time `json:"created_at"`
 		UpdatedAt    time.Time `json:"updated_at"`
 	}
+
+	LogoutReq struct {
+		CredentialId string `json:"credential_id" form:"credential_id" validate:"required,max=64"`
+	}
 )
