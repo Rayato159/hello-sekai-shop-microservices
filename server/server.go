@@ -13,6 +13,7 @@ import (
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/middleware/middlewareHandler"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/middleware/middlewareRepository"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/middleware/middlewareUsecase"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/jwtauth"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -60,6 +61,8 @@ func Start(pctx context.Context, cfg *config.Config, db *mongo.Client) {
 		cfg:        cfg,
 		middleware: newMiddleware(cfg),
 	}
+
+	jwtauth.SetApiKey(cfg.Jwt.ApiSceretKey)
 
 	// Basic Middleware
 	// Request Timeout

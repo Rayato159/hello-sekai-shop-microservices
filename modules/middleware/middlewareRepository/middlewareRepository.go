@@ -8,6 +8,7 @@ import (
 
 	authPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/auth/authPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/grpccon"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/jwtauth"
 )
 
 type (
@@ -33,6 +34,7 @@ func (r *middlewareRepository) AccessTokenSearch(pctx context.Context, grpcUrl, 
 		return errors.New("error: gRPC connection failed")
 	}
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	result, err := conn.Auth().AccessTokenSearch(ctx, &authPb.AccessTokenSearchReq{
 		AccessToken: accessToken,
 	})
@@ -64,6 +66,7 @@ func (r *middlewareRepository) RolesCount(pctx context.Context, grpcUrl string) 
 		return -1, errors.New("error: gRPC connection failed")
 	}
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	result, err := conn.Auth().RolesCount(ctx, &authPb.RolesCountReq{})
 	if err != nil {
 		log.Printf("Error: CredentialSearch failed: %s", err.Error())

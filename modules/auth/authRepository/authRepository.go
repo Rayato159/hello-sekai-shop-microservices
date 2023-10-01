@@ -9,6 +9,7 @@ import (
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/auth"
 	playerPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/player/playerPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/grpccon"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/jwtauth"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -44,6 +45,7 @@ func (r *authRepository) CredentialSearch(pctx context.Context, grpcUrl string, 
 	ctx, cancel := context.WithTimeout(pctx, 30*time.Second)
 	defer cancel()
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	conn, err := grpccon.NewGrpcClient(grpcUrl)
 	if err != nil {
 		log.Printf("Error: gRPC connection failed: %s", err.Error())
@@ -63,6 +65,7 @@ func (r *authRepository) FindOnePlayerProfileToRefresh(pctx context.Context, grp
 	ctx, cancel := context.WithTimeout(pctx, 30*time.Second)
 	defer cancel()
 
+	jwtauth.SetApiKeyInContext(&ctx)
 	conn, err := grpccon.NewGrpcClient(grpcUrl)
 	if err != nil {
 		log.Printf("Error: gRPC connection failed: %s", err.Error())
