@@ -71,8 +71,8 @@ func (r *middlewareRepository) RolesCount(pctx context.Context, grpcUrl string) 
 	}
 
 	if result == nil {
-		log.Printf("Error: access token is invalid")
-		return -1, errors.New("error: access token is invalid")
+		log.Printf("Error: roles count failed")
+		return -1, errors.New("error: roles count failed")
 	}
 
 	return result.Count, nil
