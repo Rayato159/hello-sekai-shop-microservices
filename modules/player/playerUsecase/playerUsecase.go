@@ -101,9 +101,14 @@ func (u *playerUsecase) FindOnePlayerCredential(pctx context.Context, password, 
 		return nil, err
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(password), []byte(result.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(result.Password), []byte(password)); err != nil {
 		log.Printf("Error: FindOnePlayerCredential: %s", err.Error())
 		return nil, errors.New("error: password is invalid")
+	}
+
+	roleCode := 0
+	for _, v := range result.PlayerRoles {
+		roleCode += v.RoleCode
 	}
 
 	loc, _ := time.LoadLocation("Asia/Bangkok")
@@ -112,6 +117,7 @@ func (u *playerUsecase) FindOnePlayerCredential(pctx context.Context, password, 
 		Id:        result.Id.Hex(),
 		Email:     result.Email,
 		Username:  result.Username,
+		RoleCode:  int32(roleCode),
 		CreatedAt: result.CreatedAt.In(loc).String(),
 		UpdatedAt: result.UpdatedAt.In(loc).String(),
 	}, nil

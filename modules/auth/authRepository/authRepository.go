@@ -6,13 +6,18 @@ import (
 	"log"
 	"time"
 
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/auth"
 	playerPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/player/playerPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/grpccon"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type (
-	AuthRepositoryService interface{}
+	AuthRepositoryService interface {
+		CredentialSearch(pctx context.Context, grpcUrl string, req *playerPb.CredentialSearchReq) (*playerPb.PlayerProfile, error)
+		InsertOnePlayerCredential(pctx context.Context, req *auth.Credential) (primitive.ObjectID, error)
+	}
 
 	authRepository struct {
 		db *mongo.Client
@@ -40,8 +45,24 @@ func (r *authRepository) CredentialSearch(pctx context.Context, grpcUrl string, 
 	result, err := conn.Player().CredentialSearch(ctx, req)
 	if err != nil {
 		log.Printf("Error: CredentialSearch failed: %s", err.Error())
-		return nil, errors.New(err.Error())
+		return nil, errors.New("error: email or password is incorrect")
 	}
 
 	return result, nil
+}
+
+func (r *authRepository) InsertOnePlayerCredential(pctx context.Context, req *auth.Credential) (primitive.ObjectID, error) {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.authDbConn(ctx)
+	col := db.Collection("auth")
+
+	result, err := col.InsertOne(ctx, req)
+	if err != nil {
+		log.Printf("Error: InsertOnePlayerCredential failed: %s", err.Error())
+		return primitive.NilObjectID, errors.New("error: insert one player credential failed")
+	}
+
+	return result.InsertedID.(primitive.ObjectID), nil
 }

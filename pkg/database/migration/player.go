@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func playerDbConn(pctx context.Context, cfg *config.Config) *mongo.Database {
@@ -42,8 +43,12 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 	documents := func() []any {
 		roles := []*player.Player{
 			{
-				Email:    "player001@sekai.com",
-				Password: "123456",
+				Email: "player001@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
 				Username: "Player001",
 				PlayerRoles: []player.PlayerRole{
 					{
@@ -55,8 +60,12 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 				UpdatedAt: utils.LocalTime(),
 			},
 			{
-				Email:    "player002@sekai.com",
-				Password: "123456",
+				Email: "player002@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
 				Username: "Player002",
 				PlayerRoles: []player.PlayerRole{
 					{
@@ -68,8 +77,12 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 				UpdatedAt: utils.LocalTime(),
 			},
 			{
-				Email:    "player003@sekai.com",
-				Password: "123456",
+				Email: "player003@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
 				Username: "Player003",
 				PlayerRoles: []player.PlayerRole{
 					{
@@ -81,8 +94,12 @@ func PlayerMigrate(pctx context.Context, cfg *config.Config) {
 				UpdatedAt: utils.LocalTime(),
 			},
 			{
-				Email:    "admin001@sekai.com",
-				Password: "123456",
+				Email: "admin001@sekai.com",
+				Password: func() string {
+					// Hashing password
+					hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("123456"), bcrypt.DefaultCost)
+					return string(hashedPassword)
+				}(),
 				Username: "Player003",
 				PlayerRoles: []player.PlayerRole{
 					{

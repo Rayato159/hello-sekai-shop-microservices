@@ -17,7 +17,7 @@ type (
 	}
 
 	Claims struct {
-		Id       string `json:"id"`
+		PlayerId string `json:"player_id"`
 		RoleCode int    `json:"role_code"`
 	}
 
