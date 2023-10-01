@@ -25,5 +25,5 @@ func (g *authGrpcHandler) AccessTokenSearch(ctx context.Context, req *authPb.Acc
 }
 
 func (g *authGrpcHandler) RolesCount(ctx context.Context, req *authPb.RolesCountReq) (*authPb.RolesCountRes, error) {
-	return nil, nil
+	return g.authUsecase.RolesCount(ctx)
 }

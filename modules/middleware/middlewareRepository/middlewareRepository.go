@@ -13,6 +13,7 @@ import (
 type (
 	MiddlewareRepositoryService interface {
 		AccessTokenSearch(pctx context.Context, grpcUrl, accessToken string) error
+		RolesCount(pctx context.Context, grpcUrl string) (int64, error)
 	}
 
 	middlewareRepository struct{}
@@ -51,4 +52,28 @@ func (r *middlewareRepository) AccessTokenSearch(pctx context.Context, grpcUrl, 
 	}
 
 	return nil
+}
+
+func (r *middlewareRepository) RolesCount(pctx context.Context, grpcUrl string) (int64, error) {
+	ctx, cancel := context.WithTimeout(pctx, 30*time.Second)
+	defer cancel()
+
+	conn, err := grpccon.NewGrpcClient(grpcUrl)
+	if err != nil {
+		log.Printf("Error: gRPC connection failed: %s", err.Error())
+		return -1, errors.New("error: gRPC connection failed")
+	}
+
+	result, err := conn.Auth().RolesCount(ctx, &authPb.RolesCountReq{})
+	if err != nil {
+		log.Printf("Error: CredentialSearch failed: %s", err.Error())
+		return -1, errors.New("error: email or password is incorrect")
+	}
+
+	if result == nil {
+		log.Printf("Error: access token is invalid")
+		return -1, errors.New("error: access token is invalid")
+	}
+
+	return result.Count, nil
 }
