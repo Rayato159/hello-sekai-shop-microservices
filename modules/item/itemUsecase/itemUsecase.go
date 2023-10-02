@@ -22,6 +22,7 @@ type (
 		FindOneItem(pctx context.Context, itemId string) (*item.ItemShowCase, error)
 		FindManyItems(pctx context.Context, basePaginateUrl string, req *item.ItemSearchReq) (*models.PaginateRes, error)
 		EditItem(pctx context.Context, itemId string, req *item.ItemUpdateReq) (*item.ItemShowCase, error)
+		EnableOrDisableItem(pctx context.Context, itemId string) (bool, error)
 	}
 
 	itemUsecase struct {
@@ -161,4 +162,17 @@ func (u *itemUsecase) EditItem(pctx context.Context, itemId string, req *item.It
 	}
 
 	return u.FindOneItem(pctx, itemId)
+}
+
+func (u *itemUsecase) EnableOrDisableItem(pctx context.Context, itemId string) (bool, error) {
+	result, err := u.itemRepository.FindOneItem(pctx, itemId)
+	if err != nil {
+		return false, err
+	}
+
+	if err := u.itemRepository.EnableOrDisableItem(pctx, itemId, !result.UsageStatus); err != nil {
+		return false, err
+	}
+
+	return !result.UsageStatus, nil
 }

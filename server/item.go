@@ -37,4 +37,5 @@ func (s *server) itemService() {
 	item.GET("/item/:item_id", httpHandler.FindOneItem)
 	item.GET("/item", httpHandler.FindManyItems)
 	item.PATCH("/item/:item_id", s.middleware.JwtAuthorization(s.middleware.RbacAuthorization(httpHandler.EditItem, []int{1, 0})))
+	item.PATCH("/item/:item_id/is-activated", s.middleware.JwtAuthorization(s.middleware.RbacAuthorization(httpHandler.EnableOrDisableItem, []int{1, 0})))
 }
