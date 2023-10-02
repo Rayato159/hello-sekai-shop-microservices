@@ -36,4 +36,5 @@ func (s *server) itemService() {
 	item.POST("/item", s.middleware.JwtAuthorization(s.middleware.RbacAuthorization(httpHandler.CreateItem, []int{1, 0})))
 	item.GET("/item/:item_id", httpHandler.FindOneItem)
 	item.GET("/item", httpHandler.FindManyItems)
+	item.PATCH("/item/:item_id", s.middleware.JwtAuthorization(s.middleware.RbacAuthorization(httpHandler.EditItem, []int{1, 0})))
 }
