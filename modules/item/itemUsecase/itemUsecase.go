@@ -188,6 +188,7 @@ func (u *itemUsecase) FindItemInIds(pctx context.Context, req *itemPb.FindItemsI
 	}
 
 	filter = append(filter, bson.E{"_id", bson.D{{"$in", objectIds}}})
+	filter = append(filter, bson.E{"usage_status", true})
 
 	results, err := u.itemRepository.FindManyItems(pctx, filter, nil)
 	if err != nil {

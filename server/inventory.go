@@ -27,7 +27,6 @@ func (s *server) inventoryService() {
 		grpcServer.Serve(lis)
 	}()
 
-	_ = httpHandler
 	_ = grpcHandler
 	_ = queueHandler
 
@@ -35,4 +34,5 @@ func (s *server) inventoryService() {
 
 	// Health Check
 	inventory.GET("", s.healthCheckService)
+	inventory.GET("/inventory/:player_id", httpHandler.FindPlayerItems, s.middleware.JwtAuthorization, s.middleware.PlayerIdParamValidation)
 }

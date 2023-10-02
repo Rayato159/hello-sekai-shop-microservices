@@ -6,15 +6,21 @@ import (
 	"log"
 	"time"
 
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/inventory"
 	itemPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/grpccon"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/jwtauth"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type (
 	InventoryRepositoryService interface {
 		FindItemsInIds(pctx context.Context, grpcUrl string, req *itemPb.FindItemsInIdsReq) (*itemPb.FindItemsInIdsRes, error)
+		FindPlayerItems(pctx context.Context, filter primitive.D, opts []*options.FindOptions) ([]*inventory.Inventory, error)
+		CountPlayerItems(pctx context.Context, playerId string) (int64, error)
 	}
 
 	inventoryRepository struct {
@@ -58,4 +64,47 @@ func (r *inventoryRepository) FindItemsInIds(pctx context.Context, grpcUrl strin
 	}
 
 	return result, nil
+}
+
+func (r *inventoryRepository) FindPlayerItems(pctx context.Context, filter primitive.D, opts []*options.FindOptions) ([]*inventory.Inventory, error) {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.inventoryDbConn(ctx)
+	col := db.Collection("players_inventory")
+
+	cursors, err := col.Find(ctx, filter, opts...)
+	if err != nil {
+		log.Printf("Error: FindPlayerItems failed: %s", err.Error())
+		return nil, errors.New("error: player items not found")
+	}
+
+	results := make([]*inventory.Inventory, 0)
+	for cursors.Next(ctx) {
+		result := new(inventory.Inventory)
+		if err := cursors.Decode(result); err != nil {
+			log.Printf("Error: FindPlayerItems failed: %s", err.Error())
+			return nil, errors.New("error: player items not found")
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
+func (r *inventoryRepository) CountPlayerItems(pctx context.Context, playerId string) (int64, error) {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.inventoryDbConn(ctx)
+	col := db.Collection("players_inventory")
+
+	count, err := col.CountDocuments(ctx, bson.M{"player_id": playerId})
+	if err != nil {
+		log.Printf("Error: CountPlayerItems failed: %s", err.Error())
+		return -1, errors.New("error: count player items failed")
+	}
+
+	return count, nil
 }
