@@ -42,7 +42,7 @@ func (h *inventoryHttpHandler) FindPlayerItems(c echo.Context) error {
 		return response.ErrResponse(c, http.StatusBadRequest, err.Error())
 	}
 
-	res, err := h.inventoryUsecase.FindPlayerItems(ctx, h.cfg.Paginate.InventoryNextPageBasedUrl, playerId, req)
+	res, err := h.inventoryUsecase.FindPlayerItems(ctx, h.cfg, playerId, req)
 	if err != nil {
 		return response.ErrResponse(c, http.StatusBadRequest, err.Error())
 	}
