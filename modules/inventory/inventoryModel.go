@@ -2,7 +2,6 @@ package inventory
 
 import (
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/item"
-	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/models"
 )
 
 type (
@@ -13,11 +12,7 @@ type (
 
 	ItemInInventory struct {
 		InventoryId string `json:"inventory_id"`
+		PlayerId    string `json:"player_id"`
 		*item.ItemShowCase
-	}
-
-	PlayerInventory struct {
-		PlayerId string `json:"player_id"`
-		*models.PaginateRes
 	}
 )

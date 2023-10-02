@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/item"
+	itemPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemRepository"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/models"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/utils"
@@ -23,6 +24,7 @@ type (
 		FindManyItems(pctx context.Context, basePaginateUrl string, req *item.ItemSearchReq) (*models.PaginateRes, error)
 		EditItem(pctx context.Context, itemId string, req *item.ItemUpdateReq) (*item.ItemShowCase, error)
 		EnableOrDisableItem(pctx context.Context, itemId string) (bool, error)
+		FindItemInIds(pctx context.Context, req *itemPb.FindItemsInIdsReq) (*itemPb.FindItemsInIdsRes, error)
 	}
 
 	itemUsecase struct {
@@ -175,4 +177,35 @@ func (u *itemUsecase) EnableOrDisableItem(pctx context.Context, itemId string) (
 	}
 
 	return !result.UsageStatus, nil
+}
+
+func (u *itemUsecase) FindItemInIds(pctx context.Context, req *itemPb.FindItemsInIdsReq) (*itemPb.FindItemsInIdsRes, error) {
+	filter := bson.D{}
+
+	objectIds := make([]primitive.ObjectID, 0)
+	for _, itemId := range req.Ids {
+		objectIds = append(objectIds, utils.ConvertToObjectId(strings.TrimPrefix(itemId, "item:")))
+	}
+
+	filter = append(filter, bson.E{"_id", bson.D{{"$in", objectIds}}})
+
+	results, err := u.itemRepository.FindManyItems(pctx, filter, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resultsToRes := make([]*itemPb.Item, 0)
+	for _, result := range results {
+		resultsToRes = append(resultsToRes, &itemPb.Item{
+			Id:       result.ItemId,
+			Title:    result.Title,
+			Price:    result.Price,
+			Damage:   int32(result.Damage),
+			ImageUrl: result.ImageUrl,
+		})
+	}
+
+	return &itemPb.FindItemsInIdsRes{
+		Items: resultsToRes,
+	}, nil
 }

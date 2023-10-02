@@ -6,7 +6,7 @@ option go_package = "github.com/Rayato159/hello-sekai-shop-tutorial";
 
 // Structures
 message FindItemsInIdsReq {
-    repeated int32 ids = 1;
+    repeated string ids = 1;
 }
 
 message FindItemsInIdsRes {
