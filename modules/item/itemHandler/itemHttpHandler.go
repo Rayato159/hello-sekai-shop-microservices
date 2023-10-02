@@ -3,6 +3,7 @@ package itemHandler
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/Rayato159/hello-sekai-shop-tutorial/config"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/item"
@@ -15,6 +16,7 @@ import (
 type (
 	ItemHttpHandlerService interface {
 		CreateItem(c echo.Context) error
+		FindOneItem(c echo.Context) error
 	}
 
 	itemHttpHandler struct {
@@ -42,6 +44,19 @@ func (h *itemHttpHandler) CreateItem(c echo.Context) error {
 	}
 
 	res, err := h.itemUsecase.CreateItem(ctx, req)
+	if err != nil {
+		return response.ErrResponse(c, http.StatusBadRequest, err.Error())
+	}
+
+	return response.SuccessResponse(c, http.StatusCreated, res)
+}
+
+func (h *itemHttpHandler) FindOneItem(c echo.Context) error {
+	ctx := context.Background()
+
+	itemId := strings.TrimPrefix(c.Param("item_id"), "item:")
+
+	res, err := h.itemUsecase.FindOneItem(ctx, itemId)
 	if err != nil {
 		return response.ErrResponse(c, http.StatusBadRequest, err.Error())
 	}
