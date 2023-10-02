@@ -3,16 +3,23 @@ package itemUsecase
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/item"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemRepository"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/models"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/utils"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type (
 	ItemUsecaseService interface {
 		CreateItem(pctx context.Context, req *item.CreateItemReq) (*item.ItemShowCase, error)
 		FindOneItem(pctx context.Context, itemId string) (*item.ItemShowCase, error)
+		FindManyItems(pctx context.Context, basePaginateUrl string, req *item.ItemSearchReq) (*models.PaginateRes, error)
 	}
 
 	itemUsecase struct {
@@ -57,5 +64,70 @@ func (u *itemUsecase) FindOneItem(pctx context.Context, itemId string) (*item.It
 		Price:    result.Price,
 		Damage:   result.Damage,
 		ImageUrl: result.ImageUrl,
+	}, nil
+}
+
+func (u *itemUsecase) FindManyItems(pctx context.Context, basePaginateUrl string, req *item.ItemSearchReq) (*models.PaginateRes, error) {
+	findItemsFilter := bson.D{}
+	findItemsOpts := make([]*options.FindOptions, 0)
+
+	countItemsFilter := bson.D{}
+
+	// Filter
+	if req.Start != "" {
+		req.Start = strings.TrimPrefix(req.Start, "item:")
+		findItemsFilter = append(findItemsFilter, bson.E{"_id", bson.D{{"$gt", utils.ConvertToObjectId(req.Start)}}})
+	}
+
+	if req.Title != "" {
+		findItemsFilter = append(findItemsFilter, bson.E{"title", primitive.Regex{Pattern: req.Title, Options: "i"}})
+		countItemsFilter = append(countItemsFilter, bson.E{"title", primitive.Regex{Pattern: req.Title, Options: "i"}})
+	}
+
+	findItemsFilter = append(findItemsFilter, bson.E{"usage_status", true})
+	countItemsFilter = append(countItemsFilter, bson.E{"usage_status", true})
+
+	// Options
+	findItemsOpts = append(findItemsOpts, options.Find().SetSort(bson.D{{"_id", 1}}))
+	findItemsOpts = append(findItemsOpts, options.Find().SetLimit(int64(req.Limit)))
+
+	// Find
+	results, err := u.itemRepository.FindManyItems(pctx, findItemsFilter, findItemsOpts)
+	if err != nil {
+		return nil, err
+	}
+
+	// Count
+	total, err := u.itemRepository.CountItems(pctx, countItemsFilter)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(results) == 0 {
+		return &models.PaginateRes{
+			Data:  make([]*item.ItemShowCase, 0),
+			Total: total,
+			Limit: req.Limit,
+			First: models.FirstPaginate{
+				Href: fmt.Sprintf("%s?limit=%d&title=%s", basePaginateUrl, req.Limit, req.Title),
+			},
+			Next: models.NextPaginate{
+				Start: "",
+				Href:  "",
+			},
+		}, nil
+	}
+
+	return &models.PaginateRes{
+		Data:  results,
+		Total: total,
+		Limit: req.Limit,
+		First: models.FirstPaginate{
+			Href: fmt.Sprintf("%s?limit=%d&title=%s", basePaginateUrl, req.Limit, req.Title),
+		},
+		Next: models.NextPaginate{
+			Start: results[len(results)-1].ItemId,
+			Href:  fmt.Sprintf("%s?limit=%d&title=%s&start=%s", basePaginateUrl, req.Limit, req.Title, results[len(results)-1].ItemId),
+		},
 	}, nil
 }
