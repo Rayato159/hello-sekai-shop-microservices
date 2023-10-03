@@ -15,6 +15,8 @@ import (
 
 type (
 	PlayerUsecaseService interface {
+		GetOffset(pctx context.Context) (int64, error)
+		UpserOffset(pctx context.Context, offset int64) error
 		CreatePlayer(pctx context.Context, req *player.CreatePlayerReq) (*player.PlayerProfile, error)
 		FindOnePlayerProfile(pctx context.Context, playerId string) (*player.PlayerProfile, error)
 		AddPlayerMoney(pctx context.Context, req *player.CreatePlayerTransactionReq) (*player.PlayerSavingAccount, error)
@@ -30,6 +32,13 @@ type (
 
 func NewPlayerUsecase(playerRepository playerRepository.PlayerRepositoryService) PlayerUsecaseService {
 	return &playerUsecase{playerRepository: playerRepository}
+}
+
+func (u *playerUsecase) GetOffset(pctx context.Context) (int64, error) {
+	return u.playerRepository.GetOffset(pctx)
+}
+func (u *playerUsecase) UpserOffset(pctx context.Context, offset int64) error {
+	return u.playerRepository.UpserOffset(pctx, offset)
 }
 
 func (u *playerUsecase) CreatePlayer(pctx context.Context, req *player.CreatePlayerReq) (*player.PlayerProfile, error) {

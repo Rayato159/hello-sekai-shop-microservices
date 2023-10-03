@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/models"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/player"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,6 +17,8 @@ import (
 
 type (
 	PlayerRepositoryService interface {
+		GetOffset(pctx context.Context) (int64, error)
+		UpserOffset(pctx context.Context, offset int64) error
 		IsUniquePlayer(pctx context.Context, email, username string) bool
 		InsertOnePlayer(pctx context.Context, req *player.Player) (primitive.ObjectID, error)
 		FindOnePlayerProfile(pctx context.Context, playerId string) (*player.PlayerProfileBson, error)
@@ -36,6 +39,39 @@ func NewPlayerRepository(db *mongo.Client) PlayerRepositoryService {
 
 func (r *playerRepository) playerDbConn(pctx context.Context) *mongo.Database {
 	return r.db.Database("player_db")
+}
+
+func (r *playerRepository) GetOffset(pctx context.Context) (int64, error) {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.playerDbConn(ctx)
+	col := db.Collection("players_transactions_queue")
+
+	result := new(models.KafkaOffset)
+	if err := col.FindOne(ctx, bson.M{}).Decode(result); err != nil {
+		log.Printf("Error: GetOffset failed: %s", err.Error())
+		return -1, errors.New("error: GetOffset failed")
+	}
+
+	return result.Offset, nil
+}
+
+func (r *playerRepository) UpserOffset(pctx context.Context, offset int64) error {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.playerDbConn(ctx)
+	col := db.Collection("players_transactions_queue")
+
+	result, err := col.UpdateOne(ctx, bson.M{}, bson.M{"$set": bson.M{"offset": offset}}, options.Update().SetUpsert(true))
+	if err != nil {
+		log.Printf("Error: UpserOffset failed: %s", err.Error())
+		return errors.New("error: UpserOffset failed")
+	}
+	log.Printf("Info: UpserOffset result: %v", result)
+
+	return nil
 }
 
 func (r *playerRepository) IsUniquePlayer(pctx context.Context, email, username string) bool {

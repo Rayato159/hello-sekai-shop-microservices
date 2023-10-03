@@ -7,7 +7,6 @@ import (
 	"net"
 
 	authPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/auth/authPb"
-	inventoryPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/inventory/inventoryPb"
 	itemPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemPb"
 	playerPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/player/playerPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/jwtauth"
@@ -23,7 +22,6 @@ type (
 		Auth() authPb.AuthGrpcServiceClient
 		Player() playerPb.PlayerGrpcServiceClient
 		Item() itemPb.ItemGrpcServiceClient
-		Inventory() inventoryPb.InventoryGrpcServiceClient
 	}
 
 	grpcClientFactory struct {
@@ -73,10 +71,6 @@ func (g *grpcClientFactory) Player() playerPb.PlayerGrpcServiceClient {
 
 func (g *grpcClientFactory) Item() itemPb.ItemGrpcServiceClient {
 	return itemPb.NewItemGrpcServiceClient(g.client)
-}
-
-func (g *grpcClientFactory) Inventory() inventoryPb.InventoryGrpcServiceClient {
-	return inventoryPb.NewInventoryGrpcServiceClient(g.client)
 }
 
 func NewGrpcClient(host string) (GrpcClientFactoryHandler, error) {
