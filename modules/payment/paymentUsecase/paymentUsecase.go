@@ -5,10 +5,13 @@ import (
 	"errors"
 	"log"
 
+	"github.com/IBM/sarama"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/config"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/item"
 	itemPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/payment"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/payment/paymentRepository"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/queue"
 )
 
 type (
@@ -16,6 +19,8 @@ type (
 		GetOffset(pctx context.Context) (int64, error)
 		UpserOffset(pctx context.Context, offset int64) error
 		FindItemsInIds(pctx context.Context, grpcUrl string, req []*payment.ItemServiceReqDatum) error
+		BuyItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error)
+		SellItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error)
 	}
 
 	paymentUsecase struct {
@@ -34,6 +39,77 @@ func (u *paymentUsecase) GetOffset(pctx context.Context) (int64, error) {
 }
 func (u *paymentUsecase) UpserOffset(pctx context.Context, offset int64) error {
 	return u.paymentRepository.UpserOffset(pctx, offset)
+}
+
+func (u *paymentUsecase) PaymentConsumer(pctx context.Context, cfg *config.Config) (sarama.PartitionConsumer, error) {
+	worker, err := queue.ConnectConsumer([]string{cfg.Kafka.Url}, cfg.Kafka.ApiKey, cfg.Kafka.Secret)
+	if err != nil {
+		return nil, err
+	}
+
+	offset, err := u.paymentRepository.GetOffset(pctx)
+	if err != nil {
+		return nil, err
+	}
+
+	consumer, err := worker.ConsumePartition("payment", 0, offset)
+	if err != nil {
+		log.Println("Trying to set offset as 0")
+		consumer, err = worker.ConsumePartition("payment", 0, 0)
+		if err != nil {
+			log.Println("Error: PaymentConsumer failed: ", err.Error())
+			return nil, err
+		}
+	}
+
+	return consumer, nil
+}
+
+func (u *paymentUsecase) BuyItemConsumer(pctx context.Context, cfg *config.Config, resCh chan<- *payment.PaymentTransferRes) {
+	consumer, err := u.PaymentConsumer(pctx, cfg)
+	if err != nil {
+		resCh <- nil
+		return
+	}
+
+	log.Println("Start BuyItemConsumer ...")
+
+	select {
+	case err := <-consumer.Errors():
+		log.Println("Error: BuyItemConsumer failed: ", err.Error())
+		resCh <- nil
+		return
+	case msg := <-consumer.Messages():
+		if string(msg.Key) == "buy" {
+			u.UpserOffset(pctx, msg.Offset+1)
+
+			req := new(payment.PaymentTransferRes)
+
+			if err := queue.DecodeMessage(req, msg.Value); err != nil {
+				resCh <- nil
+				return
+			}
+
+			resCh <- req
+			log.Printf("BuyItemConsumer | Topic(%s)| Offset(%d) Message(%s) \n", msg.Topic, msg.Offset, string(msg.Value))
+		}
+	}
+}
+
+func (u *paymentUsecase) BuyItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error) {
+	if err := u.FindItemsInIds(pctx, cfg.Grpc.ItemUrl, req.Items); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (u *paymentUsecase) SellItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error) {
+	if err := u.FindItemsInIds(pctx, cfg.Grpc.ItemUrl, req.Items); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 func (u *paymentUsecase) FindItemsInIds(pctx context.Context, grpcUrl string, req []*payment.ItemServiceReqDatum) error {

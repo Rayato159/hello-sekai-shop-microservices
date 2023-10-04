@@ -40,7 +40,7 @@ type (
 	Kafka struct {
 		Url    string
 		ApiKey string
-		Scret  string
+		Secret string
 	}
 
 	Grpc struct {
@@ -93,7 +93,7 @@ func LoadConfig(path string) Config {
 		Kafka: Kafka{
 			Url:    os.Getenv("KAFKA_URL"),
 			ApiKey: os.Getenv("KAFKA_API_KEY"),
-			Scret:  os.Getenv("KAFKA_SECRET"),
+			Secret: os.Getenv("KAFKA_SECRET"),
 		},
 		Grpc: Grpc{
 			AuthUrl:      os.Getenv("GRPC_AUTH_URL"),
