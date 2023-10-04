@@ -11,6 +11,7 @@ import (
 	itemPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/payment"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/payment/paymentRepository"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/player"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/queue"
 )
 
@@ -19,8 +20,8 @@ type (
 		GetOffset(pctx context.Context) (int64, error)
 		UpserOffset(pctx context.Context, offset int64) error
 		FindItemsInIds(pctx context.Context, grpcUrl string, req []*payment.ItemServiceReqDatum) error
-		BuyItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error)
-		SellItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error)
+		BuyItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) ([]*payment.PaymentTransferRes, error)
+		SellItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) ([]*payment.PaymentTransferRes, error)
 	}
 
 	paymentUsecase struct {
@@ -65,22 +66,23 @@ func (u *paymentUsecase) PaymentConsumer(pctx context.Context, cfg *config.Confi
 	return consumer, nil
 }
 
-func (u *paymentUsecase) BuyItemConsumer(pctx context.Context, cfg *config.Config, resCh chan<- *payment.PaymentTransferRes) {
+func (u *paymentUsecase) BuyOrSellConsumer(pctx context.Context, key string, cfg *config.Config, resCh chan<- *payment.PaymentTransferRes) {
 	consumer, err := u.PaymentConsumer(pctx, cfg)
 	if err != nil {
 		resCh <- nil
 		return
 	}
+	defer consumer.Close()
 
-	log.Println("Start BuyItemConsumer ...")
+	log.Println("Start BuyOrSellConsumer ...")
 
 	select {
 	case err := <-consumer.Errors():
-		log.Println("Error: BuyItemConsumer failed: ", err.Error())
+		log.Println("Error: BuyOrSellConsumer failed: ", err.Error())
 		resCh <- nil
 		return
 	case msg := <-consumer.Messages():
-		if string(msg.Key) == "buy" {
+		if string(msg.Key) == key {
 			u.UpserOffset(pctx, msg.Offset+1)
 
 			req := new(payment.PaymentTransferRes)
@@ -91,20 +93,48 @@ func (u *paymentUsecase) BuyItemConsumer(pctx context.Context, cfg *config.Confi
 			}
 
 			resCh <- req
-			log.Printf("BuyItemConsumer | Topic(%s)| Offset(%d) Message(%s) \n", msg.Topic, msg.Offset, string(msg.Value))
+			log.Printf("BuyOrSellConsumer | Topic(%s)| Offset(%d) Message(%s) \n", msg.Topic, msg.Offset, string(msg.Value))
 		}
 	}
 }
 
-func (u *paymentUsecase) BuyItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error) {
+func (u *paymentUsecase) BuyItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) ([]*payment.PaymentTransferRes, error) {
 	if err := u.FindItemsInIds(pctx, cfg.Grpc.ItemUrl, req.Items); err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	stage1 := make([]*payment.PaymentTransferRes, 0)
+	for _, item := range req.Items {
+		u.paymentRepository.DockedPlayerMoney(pctx, cfg, &player.CreatePlayerTransactionReq{
+			PlayerId: playerId,
+			Amount:   -item.Price,
+		})
+
+		resCh := make(chan *payment.PaymentTransferRes)
+
+		go u.BuyOrSellConsumer(pctx, "buy", cfg, resCh)
+
+		res := <-resCh
+		if res != nil {
+			log.Println(res)
+			stage1 = append(stage1, res)
+		}
+	}
+
+	for _, s1 := range stage1 {
+		if s1.Error != "" {
+			for _, ss1 := range stage1 {
+				u.paymentRepository.RollbackTransaction(pctx, cfg, &player.RollbackPlayerTransactionReq{
+					TransactionId: ss1.TransactionId,
+				})
+			}
+		}
+	}
+
+	return stage1, nil
 }
 
-func (u *paymentUsecase) SellItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) (*payment.PaymentTransferRes, error) {
+func (u *paymentUsecase) SellItem(pctx context.Context, cfg *config.Config, playerId string, req *payment.ItemServiceReq) ([]*payment.PaymentTransferRes, error) {
 	if err := u.FindItemsInIds(pctx, cfg.Grpc.ItemUrl, req.Items); err != nil {
 		return nil, err
 	}

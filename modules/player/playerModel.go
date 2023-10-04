@@ -26,4 +26,8 @@ type (
 		PlayerId string  `json:"player_id" validate:"required,max=64"`
 		Amount   float64 `json:"amount" validate:"required"`
 	}
+
+	RollbackPlayerTransactionReq struct {
+		TransactionId string `json:"transaction_id"`
+	}
 )

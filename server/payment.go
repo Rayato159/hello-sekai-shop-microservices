@@ -10,13 +10,12 @@ func (s *server) paymentService() {
 	repo := paymentRepository.NewPaymentRepository(s.db)
 	usecase := paymentUsecase.NewPaymentUsecase(repo)
 	httpHandler := paymentHandler.NewPaymentHttpHandler(s.cfg, usecase)
-	queueHandler := paymentHandler.NewPaymentQueueHandler(s.cfg, usecase)
-
-	_ = httpHandler
-	_ = queueHandler
 
 	payment := s.app.Group("/payment_v1")
 
 	// Health Check
 	payment.GET("", s.healthCheckService)
+
+	payment.POST("/payment/buy", httpHandler.BuyItem, s.middleware.JwtAuthorization)
+	payment.POST("/payment/sell", httpHandler.SellItem, s.middleware.JwtAuthorization)
 }

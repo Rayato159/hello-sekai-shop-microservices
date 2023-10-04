@@ -4,8 +4,11 @@ import (
 	"context"
 	"errors"
 	"log"
+	"math"
 	"time"
 
+	"github.com/Rayato159/hello-sekai-shop-tutorial/config"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/payment"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/player"
 	playerPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/player/playerPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/player/playerRepository"
@@ -23,6 +26,8 @@ type (
 		GetPlayerSavingAccount(pctx context.Context, playerId string) (*player.PlayerSavingAccount, error)
 		FindOnePlayerCredential(pctx context.Context, password, email string) (*playerPb.PlayerProfile, error)
 		FindOnePlayerProfileToRefresh(pctx context.Context, playerId string) (*playerPb.PlayerProfile, error)
+		DockedPlayerMoneyRes(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq)
+		RollbackPlayerTransaction(pctx context.Context, req *player.RollbackPlayerTransactionReq)
 	}
 
 	playerUsecase struct {
@@ -89,7 +94,7 @@ func (u *playerUsecase) FindOnePlayerProfile(pctx context.Context, playerId stri
 
 func (u *playerUsecase) AddPlayerMoney(pctx context.Context, req *player.CreatePlayerTransactionReq) (*player.PlayerSavingAccount, error) {
 	// Insert one player transaction
-	if err := u.playerRepository.InsertOnePlayerTranscation(pctx, &player.PlayerTransaction{
+	if _, err := u.playerRepository.InsertOnePlayerTranscation(pctx, &player.PlayerTransaction{
 		PlayerId:  req.PlayerId,
 		Amount:    req.Amount,
 		CreatedAt: utils.LocalTime(),
@@ -154,4 +159,64 @@ func (u *playerUsecase) FindOnePlayerProfileToRefresh(pctx context.Context, play
 		CreatedAt: result.CreatedAt.In(loc).String(),
 		UpdatedAt: result.UpdatedAt.In(loc).String(),
 	}, nil
+}
+
+func (u *playerUsecase) DockedPlayerMoneyRes(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq) {
+	// Get saving account
+	savingAccount, err := u.playerRepository.GetPlayerSavingAccount(pctx, req.PlayerId)
+	if err != nil {
+		u.playerRepository.DockedPlayerMoneyRes(pctx, cfg, &payment.PaymentTransferRes{
+			InventoryId:   "",
+			TransactionId: "",
+			PlayerId:      req.PlayerId,
+			ItemId:        "",
+			Amount:        req.Amount,
+			Error:         err.Error(),
+		})
+		return
+	}
+
+	if savingAccount.Balance < math.Abs(req.Amount) {
+		log.Printf("Error: DockedPlayerMoneyRes failed: %s", "not enough money")
+		u.playerRepository.DockedPlayerMoneyRes(pctx, cfg, &payment.PaymentTransferRes{
+			InventoryId:   "",
+			TransactionId: "",
+			PlayerId:      req.PlayerId,
+			ItemId:        "",
+			Amount:        req.Amount,
+			Error:         "error: not enough money",
+		})
+		return
+	}
+
+	// Insert one player transaction
+	transactionId, err := u.playerRepository.InsertOnePlayerTranscation(pctx, &player.PlayerTransaction{
+		PlayerId:  req.PlayerId,
+		Amount:    req.Amount,
+		CreatedAt: utils.LocalTime(),
+	})
+	if err != nil {
+		u.playerRepository.DockedPlayerMoneyRes(pctx, cfg, &payment.PaymentTransferRes{
+			InventoryId:   "",
+			TransactionId: "",
+			PlayerId:      req.PlayerId,
+			ItemId:        "",
+			Amount:        req.Amount,
+			Error:         err.Error(),
+		})
+		return
+	}
+
+	u.playerRepository.DockedPlayerMoneyRes(pctx, cfg, &payment.PaymentTransferRes{
+		InventoryId:   "",
+		TransactionId: transactionId.Hex(),
+		PlayerId:      req.PlayerId,
+		ItemId:        "",
+		Amount:        req.Amount,
+		Error:         "",
+	})
+}
+
+func (u *playerUsecase) RollbackPlayerTransaction(pctx context.Context, req *player.RollbackPlayerTransactionReq) {
+	u.playerRepository.DeleteOnePlayerTransaction(pctx, req.TransactionId)
 }

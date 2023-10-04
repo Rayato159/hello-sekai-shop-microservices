@@ -61,6 +61,20 @@ func (u *inventoryUsecase) FindPlayerItems(pctx context.Context, cfg *config.Con
 	if err != nil {
 		return nil, err
 	}
+	if len(inventoryData) == 0 {
+		return &models.PaginateRes{
+			Data:  make([]*inventory.ItemInInventory, 0),
+			Total: 0,
+			Limit: req.Limit,
+			First: models.FirstPaginate{
+				Href: fmt.Sprintf("%s/%s?limit=%d", cfg.Paginate.InventoryNextPageBasedUrl, playerId, req.Limit),
+			},
+			Next: models.NextPaginate{
+				Start: "",
+				Href:  "",
+			},
+		}, nil
+	}
 
 	itemData, err := u.inventoryRepository.FindItemsInIds(pctx, cfg.Grpc.ItemUrl, &itemPb.FindItemsInIdsReq{
 		Ids: func() []string {
@@ -102,21 +116,6 @@ func (u *inventoryUsecase) FindPlayerItems(pctx context.Context, cfg *config.Con
 	total, err := u.inventoryRepository.CountPlayerItems(pctx, playerId)
 	if err != nil {
 		return nil, err
-	}
-
-	if len(results) == 0 {
-		return &models.PaginateRes{
-			Data:  make([]*inventory.ItemInInventory, 0),
-			Total: total,
-			Limit: req.Limit,
-			First: models.FirstPaginate{
-				Href: fmt.Sprintf("%s/%s?limit=%d", cfg.Paginate.InventoryNextPageBasedUrl, playerId, req.Limit),
-			},
-			Next: models.NextPaginate{
-				Start: "",
-				Href:  "",
-			},
-		}, nil
 	}
 
 	return &models.PaginateRes{
