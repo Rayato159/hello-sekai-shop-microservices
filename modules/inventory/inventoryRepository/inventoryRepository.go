@@ -2,15 +2,20 @@ package inventoryRepository
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"log"
 	"time"
 
+	"github.com/Rayato159/hello-sekai-shop-tutorial/config"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/inventory"
 	itemPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/models"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/payment"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/grpccon"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/jwtauth"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/queue"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/utils"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -24,6 +29,10 @@ type (
 		FindItemsInIds(pctx context.Context, grpcUrl string, req *itemPb.FindItemsInIdsReq) (*itemPb.FindItemsInIdsRes, error)
 		FindPlayerItems(pctx context.Context, filter primitive.D, opts []*options.FindOptions) ([]*inventory.Inventory, error)
 		CountPlayerItems(pctx context.Context, playerId string) (int64, error)
+		AddPlayerItemRes(pctx context.Context, cfg *config.Config, req *payment.PaymentTransferRes) error
+		RemovePlayerItemRes(pctx context.Context, cfg *config.Config, req *payment.PaymentTransferRes) error
+		InsertOnePlayerItem(pctx context.Context, req *inventory.Inventory) (primitive.ObjectID, error)
+		DeleteOneInventory(pctx context.Context, inventoryId string) error
 	}
 
 	inventoryRepository struct {
@@ -148,4 +157,81 @@ func (r *inventoryRepository) CountPlayerItems(pctx context.Context, playerId st
 	}
 
 	return count, nil
+}
+
+func (r *inventoryRepository) InsertOnePlayerItem(pctx context.Context, req *inventory.Inventory) (primitive.ObjectID, error) {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.inventoryDbConn(ctx)
+	col := db.Collection("players_inventory")
+
+	result, err := col.InsertOne(ctx, req)
+	if err != nil {
+		log.Printf("Error: InsertOnePlayerItem failed: %s", err.Error())
+		return primitive.NilObjectID, errors.New("error: insert player item failed")
+	}
+
+	return result.InsertedID.(primitive.ObjectID), nil
+}
+
+func (r *inventoryRepository) DeleteOneInventory(pctx context.Context, inventoryId string) error {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.inventoryDbConn(ctx)
+	col := db.Collection("players_inventory")
+
+	result, err := col.DeleteOne(ctx, bson.M{"_id": utils.ConvertToObjectId(inventoryId)})
+	if err != nil {
+		log.Printf("Error: DeleteOneInventory failed: %s", err.Error())
+		return errors.New("error: delete one inventory failed")
+	}
+	log.Printf("DeleteOneInventory result: %v", result)
+
+	return nil
+}
+
+func (r *inventoryRepository) AddPlayerItemRes(pctx context.Context, cfg *config.Config, req *payment.PaymentTransferRes) error {
+	reqInBytes, err := json.Marshal(req)
+	if err != nil {
+		log.Printf("Error: AddPlayerItemRes failed: %s", err.Error())
+		return errors.New("error: docked player money res failed")
+	}
+
+	if err := queue.PushMessageWithKeyToQueue(
+		[]string{cfg.Kafka.Url},
+		cfg.Kafka.ApiKey,
+		cfg.Kafka.Secret,
+		"payment",
+		"buy",
+		reqInBytes,
+	); err != nil {
+		log.Printf("Error: AddPlayerItemRes failed: %s", err.Error())
+		return errors.New("error: docked player money res failed")
+	}
+
+	return nil
+}
+
+func (r *inventoryRepository) RemovePlayerItemRes(pctx context.Context, cfg *config.Config, req *payment.PaymentTransferRes) error {
+	reqInBytes, err := json.Marshal(req)
+	if err != nil {
+		log.Printf("Error: RemovePlayerItemRes failed: %s", err.Error())
+		return errors.New("error: docked player money res failed")
+	}
+
+	if err := queue.PushMessageWithKeyToQueue(
+		[]string{cfg.Kafka.Url},
+		cfg.Kafka.ApiKey,
+		cfg.Kafka.Secret,
+		"payment",
+		"sell",
+		reqInBytes,
+	); err != nil {
+		log.Printf("Error: RemovePlayerItemRes failed: %s", err.Error())
+		return errors.New("error: docked player money res failed")
+	}
+
+	return nil
 }

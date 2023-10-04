@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Rayato159/hello-sekai-shop-tutorial/config"
+	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/inventory"
 	itemPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/item/itemPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/models"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/player"
@@ -26,6 +27,8 @@ type (
 		FindItemsInIds(pctx context.Context, grpcUrl string, req *itemPb.FindItemsInIdsReq) (*itemPb.FindItemsInIdsRes, error)
 		DockedPlayerMoney(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq) error
 		RollbackTransaction(pctx context.Context, cfg *config.Config, req *player.RollbackPlayerTransactionReq) error
+		AddPlayerItem(pctx context.Context, cfg *config.Config, req *inventory.UpdateInventoryReq) error
+		RollbackAddPlayerItem(pctx context.Context, cfg *config.Config, req *inventory.RollbackPlayerInventoryReq) error
 	}
 
 	paymentRepository struct {
@@ -143,6 +146,50 @@ func (r *paymentRepository) RollbackTransaction(pctx context.Context, cfg *confi
 	); err != nil {
 		log.Printf("Error: DockedPlayerMoney failed: %s", err.Error())
 		return errors.New("error: docked player money failed")
+	}
+
+	return nil
+}
+
+func (r *paymentRepository) AddPlayerItem(pctx context.Context, cfg *config.Config, req *inventory.UpdateInventoryReq) error {
+	reqInBytes, err := json.Marshal(req)
+	if err != nil {
+		log.Printf("Error: AddPlayerItem failed: %s", err.Error())
+		return errors.New("error: docked player money failed")
+	}
+
+	if err := queue.PushMessageWithKeyToQueue(
+		[]string{cfg.Kafka.Url},
+		cfg.Kafka.ApiKey,
+		cfg.Kafka.Secret,
+		"inventory",
+		"buy",
+		reqInBytes,
+	); err != nil {
+		log.Printf("Error: AddPlayerItem failed: %s", err.Error())
+		return errors.New("error: add player item failed")
+	}
+
+	return nil
+}
+
+func (r *paymentRepository) RollbackAddPlayerItem(pctx context.Context, cfg *config.Config, req *inventory.RollbackPlayerInventoryReq) error {
+	reqInBytes, err := json.Marshal(req)
+	if err != nil {
+		log.Printf("Error: RollbackAddPlayerItem failed: %s", err.Error())
+		return errors.New("error: docked player money failed")
+	}
+
+	if err := queue.PushMessageWithKeyToQueue(
+		[]string{cfg.Kafka.Url},
+		cfg.Kafka.ApiKey,
+		cfg.Kafka.Secret,
+		"inventory",
+		"radd",
+		reqInBytes,
+	); err != nil {
+		log.Printf("Error: RollbackAddPlayerItem failed: %s", err.Error())
+		return errors.New("error: rollback add player item failed")
 	}
 
 	return nil
