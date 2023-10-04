@@ -31,6 +31,7 @@ type (
 		RollbackAddPlayerItem(pctx context.Context, cfg *config.Config, req *inventory.RollbackPlayerInventoryReq) error
 		RemovePlayerItem(pctx context.Context, cfg *config.Config, req *inventory.UpdateInventoryReq) error
 		RollbackRemovePlayerItem(pctx context.Context, cfg *config.Config, req *inventory.RollbackPlayerInventoryReq) error
+		AddPlayerMoney(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq) error
 	}
 
 	paymentRepository struct {
@@ -126,6 +127,28 @@ func (r *paymentRepository) DockedPlayerMoney(pctx context.Context, cfg *config.
 	); err != nil {
 		log.Printf("Error: DockedPlayerMoney failed: %s", err.Error())
 		return errors.New("error: docked player money failed")
+	}
+
+	return nil
+}
+
+func (r *paymentRepository) AddPlayerMoney(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq) error {
+	reqInBytes, err := json.Marshal(req)
+	if err != nil {
+		log.Printf("Error: AddPlayerMoney failed: %s", err.Error())
+		return errors.New("error: add player money failed")
+	}
+
+	if err := queue.PushMessageWithKeyToQueue(
+		[]string{cfg.Kafka.Url},
+		cfg.Kafka.ApiKey,
+		cfg.Kafka.Secret,
+		"player",
+		"sell",
+		reqInBytes,
+	); err != nil {
+		log.Printf("Error: AddPlayerMoney failed: %s", err.Error())
+		return errors.New("error: add player money failed")
 	}
 
 	return nil

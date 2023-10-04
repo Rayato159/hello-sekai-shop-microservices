@@ -28,6 +28,7 @@ type (
 		FindOnePlayerProfileToRefresh(pctx context.Context, playerId string) (*playerPb.PlayerProfile, error)
 		DockedPlayerMoneyRes(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq)
 		RollbackPlayerTransaction(pctx context.Context, req *player.RollbackPlayerTransactionReq)
+		AddPlayerMoneyRes(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq)
 	}
 
 	playerUsecase struct {
@@ -208,6 +209,35 @@ func (u *playerUsecase) DockedPlayerMoneyRes(pctx context.Context, cfg *config.C
 	}
 
 	u.playerRepository.DockedPlayerMoneyRes(pctx, cfg, &payment.PaymentTransferRes{
+		InventoryId:   "",
+		TransactionId: transactionId.Hex(),
+		PlayerId:      req.PlayerId,
+		ItemId:        "",
+		Amount:        req.Amount,
+		Error:         "",
+	})
+}
+
+func (u *playerUsecase) AddPlayerMoneyRes(pctx context.Context, cfg *config.Config, req *player.CreatePlayerTransactionReq) {
+	// Insert one player transaction
+	transactionId, err := u.playerRepository.InsertOnePlayerTranscation(pctx, &player.PlayerTransaction{
+		PlayerId:  req.PlayerId,
+		Amount:    req.Amount,
+		CreatedAt: utils.LocalTime(),
+	})
+	if err != nil {
+		u.playerRepository.AddPlayerMoneyRes(pctx, cfg, &payment.PaymentTransferRes{
+			InventoryId:   "",
+			TransactionId: "",
+			PlayerId:      req.PlayerId,
+			ItemId:        "",
+			Amount:        req.Amount,
+			Error:         err.Error(),
+		})
+		return
+	}
+
+	u.playerRepository.AddPlayerMoneyRes(pctx, cfg, &payment.PaymentTransferRes{
 		InventoryId:   "",
 		TransactionId: transactionId.Hex(),
 		PlayerId:      req.PlayerId,
