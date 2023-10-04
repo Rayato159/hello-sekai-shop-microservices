@@ -192,7 +192,47 @@ func (u *paymentUsecase) SellItem(pctx context.Context, cfg *config.Config, play
 		return nil, err
 	}
 
-	return nil, nil
+	stage1 := make([]*payment.PaymentTransferRes, 0)
+	for _, item := range req.Items {
+		u.paymentRepository.RemovePlayerItem(pctx, cfg, &inventory.UpdateInventoryReq{
+			PlayerId: playerId,
+			ItemId:   item.ItemId,
+		})
+
+		resCh := make(chan *payment.PaymentTransferRes)
+
+		go u.BuyOrSellConsumer(pctx, "sell", cfg, resCh)
+
+		res := <-resCh
+		if res != nil {
+			log.Println(res)
+			stage1 = append(stage1, &payment.PaymentTransferRes{
+				InventoryId:   "",
+				TransactionId: "",
+				PlayerId:      playerId,
+				ItemId:        item.ItemId,
+				Amount:        item.Price,
+				Error:         res.Error,
+			})
+		}
+	}
+
+	for _, s1 := range stage1 {
+		if s1.Error != "" {
+			for _, ss1 := range stage1 {
+				if ss1.Error != "" {
+					u.paymentRepository.RollbackRemovePlayerItem(pctx, cfg, &inventory.RollbackPlayerInventoryReq{
+						PlayerId: playerId,
+						ItemId:   ss1.ItemId,
+					})
+				}
+			}
+			return nil, errors.New("error: sell item failed")
+		}
+
+	}
+
+	return stage1, nil
 }
 
 func (u *paymentUsecase) FindItemsInIds(pctx context.Context, grpcUrl string, req []*payment.ItemServiceReqDatum) error {

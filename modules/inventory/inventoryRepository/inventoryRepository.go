@@ -33,6 +33,8 @@ type (
 		RemovePlayerItemRes(pctx context.Context, cfg *config.Config, req *payment.PaymentTransferRes) error
 		InsertOnePlayerItem(pctx context.Context, req *inventory.Inventory) (primitive.ObjectID, error)
 		DeleteOneInventory(pctx context.Context, inventoryId string) error
+		FindOnePlayerItem(pctx context.Context, playerId, itemId string) bool
+		DeleteOnePlayerItem(pctx context.Context, playerId, itemId string) error
 	}
 
 	inventoryRepository struct {
@@ -210,6 +212,39 @@ func (r *inventoryRepository) AddPlayerItemRes(pctx context.Context, cfg *config
 		log.Printf("Error: AddPlayerItemRes failed: %s", err.Error())
 		return errors.New("error: docked player money res failed")
 	}
+
+	return nil
+}
+
+func (r *inventoryRepository) FindOnePlayerItem(pctx context.Context, playerId, itemId string) bool {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.inventoryDbConn(ctx)
+	col := db.Collection("players_inventory")
+
+	result := new(inventory.Inventory)
+
+	if err := col.FindOne(ctx, bson.M{"player_id": playerId, "item_id": itemId}).Decode(result); err != nil {
+		log.Printf("Error: FindOnePlayerItem failed: %s", err.Error())
+		return false
+	}
+	return true
+}
+
+func (r *inventoryRepository) DeleteOnePlayerItem(pctx context.Context, playerId, itemId string) error {
+	ctx, cancel := context.WithTimeout(pctx, 10*time.Second)
+	defer cancel()
+
+	db := r.inventoryDbConn(ctx)
+	col := db.Collection("players_inventory")
+
+	result, err := col.DeleteOne(ctx, bson.M{"player_id": playerId, "item_id": itemId})
+	if err != nil {
+		log.Printf("Error: DeleteOnePlayerItem failed: %s", err.Error())
+		return errors.New("error: delete one player item failed")
+	}
+	log.Printf("DeleteOnePlayerItem result: %v", result)
 
 	return nil
 }
