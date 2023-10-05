@@ -1,0 +1,13 @@
+.git
+.gitignore
+
+LICENSE
+README.md
+
+.air*
+
+*_test.go
+
+/whydoweneedtest
+/screenshots
+/build
