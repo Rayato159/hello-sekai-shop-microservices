@@ -6,6 +6,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Rayato159/hello-sekai-shop-tutorial/config"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/modules/auth"
 	playerPb "github.com/Rayato159/hello-sekai-shop-tutorial/modules/player/playerPb"
 	"github.com/Rayato159/hello-sekai-shop-tutorial/pkg/grpccon"
@@ -26,6 +27,8 @@ type (
 		DeleteOnePlayerCredential(pctx context.Context, credentialId string) (int64, error)
 		FindOneAccessToken(pctx context.Context, accessToken string) (*auth.Credential, error)
 		RolesCount(pctx context.Context) (int64, error)
+		AccessToken(cfg *config.Config, claims *jwtauth.Claims) string
+		RefreshToken(cfg *config.Config, claims *jwtauth.Claims) string
 	}
 
 	authRepository struct {
@@ -87,6 +90,9 @@ func (r *authRepository) InsertOnePlayerCredential(pctx context.Context, req *au
 
 	db := r.authDbConn(ctx)
 	col := db.Collection("auth")
+
+	req.CreatedAt = utils.LocalTime()
+	req.UpdatedAt = utils.LocalTime()
 
 	result, err := col.InsertOne(ctx, req)
 	if err != nil {
@@ -188,4 +194,18 @@ func (r *authRepository) RolesCount(pctx context.Context) (int64, error) {
 	}
 
 	return count, nil
+}
+
+func (r *authRepository) AccessToken(cfg *config.Config, claims *jwtauth.Claims) string {
+	return jwtauth.NewAccessToken(cfg.Jwt.AccessSecretKey, cfg.Jwt.AccessDuration, &jwtauth.Claims{
+		PlayerId: claims.PlayerId,
+		RoleCode: int(claims.RoleCode),
+	}).SignToken()
+}
+
+func (r *authRepository) RefreshToken(cfg *config.Config, claims *jwtauth.Claims) string {
+	return jwtauth.NewRefreshToken(cfg.Jwt.RefreshSecretKey, cfg.Jwt.RefreshDuration, &jwtauth.Claims{
+		PlayerId: claims.PlayerId,
+		RoleCode: int(claims.RoleCode),
+	}).SignToken()
 }

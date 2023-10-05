@@ -46,23 +46,21 @@ func (u *authUsecase) Login(pctx context.Context, cfg *config.Config, req *auth.
 
 	profile.Id = "player:" + profile.Id
 
-	accessToken := jwtauth.NewAccessToken(cfg.Jwt.AccessSecretKey, cfg.Jwt.AccessDuration, &jwtauth.Claims{
+	accessToken := u.authRepository.AccessToken(cfg, &jwtauth.Claims{
 		PlayerId: profile.Id,
 		RoleCode: int(profile.RoleCode),
-	}).SignToken()
+	})
 
-	refreshToken := jwtauth.NewRefreshToken(cfg.Jwt.RefreshSecretKey, cfg.Jwt.RefreshDuration, &jwtauth.Claims{
+	refreshToken := u.authRepository.RefreshToken(cfg, &jwtauth.Claims{
 		PlayerId: profile.Id,
 		RoleCode: int(profile.RoleCode),
-	}).SignToken()
+	})
 
 	credentialId, err := u.authRepository.InsertOnePlayerCredential(pctx, &auth.Credential{
 		PlayerId:     profile.Id,
 		RoleCode:     int(profile.RoleCode),
 		AccessToken:  accessToken,
 		RefreshToken: refreshToken,
-		CreatedAt:    utils.LocalTime(),
-		UpdatedAt:    utils.LocalTime(),
 	})
 
 	credential, err := u.authRepository.FindOnePlayerCredential(pctx, credentialId.Hex())
