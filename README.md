@@ -179,9 +179,7 @@ protoc --go_out=. --go_opt=paths=source_relative \
     modules/inventory/inventoryProto/inventoryProto.proto
 ```
 
-<h2>🐳 Build</h2>
-    
-<p>auth</p>
+<h2>🐳 Docker Build</h2>
 
 ```bash
 docker build -t rayato159/hello-sekai-shop:latest -f build/auth/Dockerfile .
