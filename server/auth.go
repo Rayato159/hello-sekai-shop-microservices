@@ -29,6 +29,8 @@ func (s *server) authService() {
 	auth := s.app.Group("/auth_v1")
 
 	// Health Check
+	auth.GET("", s.healthCheckService)
+
 	auth.GET("/test/:player_id", s.healthCheckService)
 	auth.POST("/auth/login", httpHandler.Login)
 	auth.POST("/auth/refresh-token", httpHandler.RefreshToken)

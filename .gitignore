@@ -30,6 +30,7 @@ go.work
 /env/compose/resolv.conf
 /env/compose/hostname
 /env/compose/hosts
+/build
 command.txt
 
 # End of https://www.toptal.com/developers/gitignore/api/go
